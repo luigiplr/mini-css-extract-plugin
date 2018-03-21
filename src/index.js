@@ -219,6 +219,8 @@ class MiniCssExtractPlugin {
   getCssChunkObject(mainChunk) {
     const obj = {};
     for (const chunk of mainChunk.getAllAsyncChunks()) {
+      obj[chunk.id] = 0;
+
       for (const module of chunk.modulesIterable) {
         if (module.type === NS) {
           obj[chunk.id] = 1;
