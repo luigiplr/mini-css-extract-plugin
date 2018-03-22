@@ -20,6 +20,10 @@ var _webpackSources = require('webpack-sources');
 
 var _webpackSources2 = _interopRequireDefault(_webpackSources);
 
+var _loaderUtils = require('loader-utils');
+
+var _loaderUtils2 = _interopRequireDefault(_loaderUtils);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 const { ConcatSource, SourceMapSource, OriginalSource } = _webpackSources2.default;
@@ -114,6 +118,19 @@ class MiniCssExtractPlugin {
   }
 
   apply(compiler) {
+    // add contenthash support
+    compiler.hooks.emit.tap(pluginName, compilation => {
+      const regexp = /\[(?:(\w+):)?contenthash(?::([a-z]+\d*))?(?::(\d+))?\]/ig;
+      Object.keys(compilation.assets).forEach(filename => {
+        if (regexp.test(filename)) {
+          const source = compilation.assets[filename].source();
+          const getHashDigest = (...args) => _loaderUtils2.default.getHashDigest(source, args[1], args[2], parseInt(args[3], 10));
+          const newFilename = filename.replace(regexp, getHashDigest);
+          compilation.assets[newFilename] = compilation.assets[filename]; // eslint-disable-line no-param-reassign
+          delete compilation.assets[filename]; // eslint-disable-line no-param-reassign
+        }
+      });
+    });
     compiler.hooks.thisCompilation.tap(pluginName, compilation => {
       compilation.hooks.normalModuleLoader.tap(pluginName, (lc, m) => {
         const loaderContext = lc;
@@ -198,8 +215,6 @@ class MiniCssExtractPlugin {
   getCssChunkObject(mainChunk) {
     const obj = {};
     for (const chunk of mainChunk.getAllAsyncChunks()) {
-      obj[chunk.id] = 0;
-
       for (const module of chunk.modulesIterable) {
         if (module.type === NS) {
           obj[chunk.id] = 1;
